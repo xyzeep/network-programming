@@ -47,7 +47,7 @@ We have to use `closesocket()` instead of `close()` and `select()` only works wi
 
 
 
-## What is a socket?
+# What is a socket?
 a way to speak to other programs using standard Unix file descriptors.
 A file descriptor is simply an integer associated with an open file. The catch is that the file can be a network connection, a FIFO, a pipe, a terminal, a real on-the-disk file, or just anything else.
 
@@ -56,4 +56,82 @@ Making a call to `socket()` system routine returns the socket descriptor, and we
 If it's a file descriptor, can't we just use the `read()` and `write()` calls to communicate thru the socket? Yes, we can. However `send()` and `recv()` provide freater control over data transmission.
 
 There are many types of sockets. DARPA Internet addresses (Internet Sockets), path names on a local node (Unix Sockets), CCITT X.25 addresses (X.25 Sockets that we can safely ignore), and so on depending on which Unix flavor you use. We're only focusing on the **Internet Sockets** right now.
+
+## Internet Sockets
+We're gonna look at two types of internet sockets. Stream Sockets and Datagram Sockets, which are referred to as "SOCK_STREAM" and "SOCK_DGRAM", respectively. Datagram sockets are sometimes called connectionless sockets. (Though they can be `connect()`'d if you reallt want.)
+
+Stream sockets are reliable two-way connected coomunication streams. If you output two items in the sockets in the order "1, 2", they will arrive in the same same order at the opposite end. They will also be error-free. `telnet` and `ssh` applications use stream sockets. Web browsers use the HTTP which uses stream sockets to get pages.
+
+Stream sockets achieve this high level of data transmission quality because they use a protocol called "The Transmission Protocol", otherwise known as TCP. TCP makes sure your data arrives sequentially and error-free.
+
+About UDP, if you send a datagram, it may arrive. It may arrive out of order. If it arrives, the data within the packet will be error-free. Datagram Sockets also use IP for routing, but they don't use TCP; they use the "User Datagram Protocol", or UDP.
+
+They are connectionless because we don't have to maintain an open connection as we do with stream sockts. We just build a packet, slap ad IP header on it with destination information, and send it out. No connection needed. However, UDP is unreliable by itself. Packets can be lost or arrive out of order. Some appliations like TFTP and DHCP still use UDP for speed but they add their own protocol system on top of UDP. For example, the tftp protocol says that each packet that gets sent, the recipient has to send back a packet that says, "I got it!" (an "ACK" packet). If the sender gets no reply in, say, five seconds, he'll re-transmit the packet until he finally gets an ACK. This ACK process is very important when implementing reliable `SOCK_DGRAM` applications. Unreliable applications like games, audio, or video, we just ugnore the dropped packets, or pehaps try to compensate for them.
+
+Why would we use an unreliable underlying protocol? Speed, speed, and speed. It's way faster to fire-and-forget then it is to keep track of wht has arrived safely and make sure it's in order and all that. If you're sending chat messages, TCP is great; if you're sending 40 positional updates per second of the players in the worlld, maybe it doesn't matter so much if one or two get dropped, and UDP is a great choice.
+
+
+## Low level nonsense and Network Theory
+A packet is born, the packet is wrapped ("encapsulated") in a header (and rarely a footer) by the first protocol (say, the TFTP protocol), then the whole thing (TFTP header inclded) is the next (IP), then again the final protocol on the hardware (physical) layer (say, ethernet). When another computer receives the packet, the hardware strips the Ether header, kernel strips the IP and UDP headers, the TFTP program strips the TFTp header, and it finally has the data.
+
+### ISO/OSI: Layered Network Model
+
+- Application
+- Presenation
+- Session
+- Tranport
+- Network
+- Data Link
+- Physical
+
+The physical layers is the hardware (serial, Ethernet). Application layer is where users interact with the network.
+ 
+ A layered model more consistent with Unix might be:
+- Application Layer (telnet, ftp)
+- Host-to-Host transport Layer (TCP, UDP)
+- Internet Layer (IP and routing)
+- Netwrok Acess Layer (Ethernet, wifi)
+
+All we have to do for stream sockers is `send()` the data out. All we have to do for sockets is encapsulate the packet in the method of your choosing and `sendto()` it out. The kernel build the Transport Layer and Internet Layer on for you and the hardware does the Network Access Layer.
+
+
+# IP Addresses, `struct` s, and Data Munging
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
