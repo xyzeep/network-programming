@@ -1,6 +1,8 @@
 # New vocab I learn:
-- circa
-    Approximately; about; commonly abbreviated ca.; -- used especially before dates and numerical measures
+- circa: Approximately; about; commonly abbreviated ca.; -- used especially before dates and numerical measures
+- naysayer: 1. One who consistently denies, criticizes, or doubts; a detractor. 2. Someone with an aggressively negative attitude.
+
+
 
 
 ```c
@@ -97,11 +99,61 @@ All we have to do for stream sockers is `send()` the data out. All we have to do
 
 # IP Addresses, `struct` s, and Data Munging
 
+IPv4: 4 bytes (32 bits). Around 4 billions addresses.
+Vint Cerf (Father of the Internet) warned us that we're going to run out of IPv4 addresses. Represented in numbers and dots like so: `192.0.2.111`
+IPv6: 16 bytes (128 bits). Around 340 trillion trillion trillion addresses. Represented in hex and colons like so: `2001:0db8:c9d2:aee5:73e3:934a:a5ae:9551`
+
+Lots of times, there are so many zeros in an IPv^ address, so we write it in a compressed form. Example:
+```
+2001:0db8:c9d2:0012:0000:0000:0000:0051
+2001:db8:c9d2:12::51
+
+2001:0db8:ab00:0000:0000:0000:0000:0000
+2001:db8:ab00::
+
+0000:0000:0000:0000:0000:0000:0000:0001
+::1
+```
+
+`::1` is the loopback address. In IPv4, loopback address is `127.0.0.1`
 
 
+We can also represent an IPv4 address in IPv6 format using the following notation: "`::ffff:192.0.2.33`"
 
+### Subnets
+An IP address has two parts: network portion and host portion. For example, in `192.0.2.12`, if the first 3 bytes are the network, the last byte (12) is the host. The network address is `192.0.2.0` (host byte zeroed out).
 
+Old system used classful networking
 
+Class A: 1 byte network + 3 bytes host = ~16 million hosts
+Class B: 2 byte network + 2 bytes host 
+Class C: 3 byte network + 1 bytes host = ~ 256 hosts
+
+#### Netmask:
+Defines which part of the IP is the network. Bitwise AND the IP with the netmask to ge the network address.
+Example: `192.0.2.12 AND 255.255.255.0 = 192.0.2.0`
+
+CIDR Notation (new stlye): A way to represent IP address and its associated subnetmask. Netmask can be any number of bits. It is written as a suffix after the IP with a slash(`/`). Example: `192.0.2.12/30`. Here, `/03` means 30 network bits and remaining (2 bits) for possible hosts.
+Works the same for IPv6 too. A netmask is always 1-bits first, then 0-bits, never mixed, i.e., some number of 1's followed by some number of 0s.
+
+### Port numbers
+besides IP address (used by the IP layer), there is another address (port number) that is sued by TCP (stream sockets) and UDP (datagram sockets). It's a 16-bit number that's like the local address for the connection.
+
+## Byte Order
+- Big-Endian: stores the big end first. `b34f` is stored as `b3 4f`. THis is Netwrok Byte Order (what the internet uses). Most significant bit in the smallest memory address.
+- Little-Endian: stores bytes reversed. `b34f` is stored as `4f b3`. Intel/Intel-compatible processores do this. Least significant bit on the smallest memory address.
+
+**Host Byte Order** is what you machine uses natively
+**Network Byte Order** is always Big-Endian
+
+We always convert to Network Byte Order before sending data, and convert back to Host Byte ORder upon receiving.
+
+Conversion functions: These handle short (2 bytes) and long (4 bytes):
+
+htons()             ->      host to network
+shorthtonl()        ->      host to network
+longntohs()         ->      network to host
+shortntohl()        ->      network to host long
 
 
 
