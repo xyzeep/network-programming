@@ -157,12 +157,32 @@ shortntohl()        ->      network to host long
 
 
 
+### Private (or disconnected) Networks
+
+Many places use a firewalls are used to hide the network from the rest of the world for thier own protection. Often times, the firewall translates "internal" IP addresses to "external" using a process called **Network Address Translation**, or NAT.
 
 
+# Jumping from IPv4 to IPv6
 
+1. Try to use the `getaddrinfo()` to get all the `struct sockaddr` info, instead of packing the structures by hand.
 
+2. Any place that you find you're hard-coding anything related to the IP version, try to wrap up in a helper function.
 
+3. Change `AF_INET` to `AF_INET6`.
 
+4. Change `PF_INET` to `PF_INET6`.
+
+5. Change `INADDR_ANY` assignments to `in6addr_any` assignments, which are alightyl different.
+
+```c
+struct sockaddre_in sa;
+struct sockaddr_in6 sa6;
+
+sa.sin_addr.s_addr = INADDR_ANY; // use my IPv4 address
+sa6.sin6_addr = in6addr_any; // use my IPv6 address
+```
+
+6. 
 
 
 
