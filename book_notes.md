@@ -1,7 +1,7 @@
 # New vocab I learn:
 - circa: Approximately; about; commonly abbreviated ca.; -- used especially before dates and numerical measures
 - naysayer: 1. One who consistently denies, criticizes, or doubts; a detractor. 2. Someone with an aggressively negative attitude.
-
+- automagically
 
 
 
@@ -162,29 +162,50 @@ shortntohl()        ->      network to host long
 Many places use a firewalls are used to hide the network from the rest of the world for thier own protection. Often times, the firewall translates "internal" IP addresses to "external" using a process called **Network Address Translation**, or NAT.
 
 
-# Jumping from IPv4 to IPv6
 
-1. Try to use the `getaddrinfo()` to get all the `struct sockaddr` info, instead of packing the structures by hand.
+# System Calls
 
-2. Any place that you find you're hard-coding anything related to the IP version, try to wrap up in a helper function.
+## `getaddrinfo()`: Prepare to launch!
+It prepares the network address information you need before making a connection. It doesn't connect or listen by itself.
+You give it a hostname (like `"www.examplme.com"`) anda port/service (like `"80"` or `"http"`), and it returns a linked list of `struct addrinfo` results, each containing a ready-to-use `struct sockaddr`.
 
-3. Change `AF_INET` to `AF_INET6`.
-
-4. Change `PF_INET` to `PF_INET6`.
-
-5. Change `INADDR_ANY` assignments to `in6addr_any` assignments, which are alightyl different.
-
+## `socket()`: Get the File Descriptor!
 ```c
-struct sockaddre_in sa;
-struct sockaddr_in6 sa6;
+#include <sys/types.h>
+#include <sys/socket.h>
 
-sa.sin_addr.s_addr = INADDR_ANY; // use my IPv4 address
-sa6.sin6_addr = in6addr_any; // use my IPv6 address
+int socket(int domain, int type, int protocol)
 ```
 
-6. 
+`domain` is `PF_INET` or `PF_INET6`,
+`type` is `SOCK_STREAM` or `SOCK_DGRAM`,
+and `protocol` can be set to `0` to chhose the proper protocol for the given `type`. Or we can use `getprotobynamme()` to look up the protocol we want, "tcp" or "udp".
 
 
+`socket()` simply returns a *socket* descriptor that we can use later in system calls, or a -1 on error.
+
+## `bind()`: What port am I on?
+Once we have the socker, we might have to associate that socket with a port on our local machine. This is commonly done if we're going to `listen()` for incoming connections on a specific port. The port number is used by the kernel to match the incoming packet to a certain process's socket descriptor. If we're only going to `connect()` (when we're the client, not the server), this is probably not necessary.
+
+Synopsis:
+```c
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int bind(int sockfd, struct sockaddr *my_addr, int addrlen);
+```
+`sockfd` is the file descriptor returned by `socket()`. `my_addr` is a pointer to a `struct sockaddr` that contains information abt your address, name port and IP adddress. `addrlen` is the length in bytes of that address.
+
+## `connect()`: Hello!
+
+```c
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
+```
+
+`sockfd` is our socket file descriptor returned by the `socket()` call, `serv_addr` is a `struct sockaddr` containing the destination port and IP address, and `addrlen` is the length in bytes of the server address structure.
 
 
 
