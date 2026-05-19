@@ -1,7 +1,8 @@
 # New vocab I learn:
 - circa: Approximately; about; commonly abbreviated ca.; -- used especially before dates and numerical measures
 - naysayer: 1. One who consistently denies, criticizes, or doubts; a detractor. 2. Someone with an aggressively negative attitude.
-- automagically
+- automagically: (this is a fun one to use)
+- perusal (pe-ru-sal): 1. he act of reading, especially of reading through or with care. 2. The act of perusing; studying something carefully. 
 
 
 
@@ -15,7 +16,7 @@ If we include `windows.h`, it automatically pulls in the older `winsock.h` (vers
 So, if we have to include `windows.h`, you need to define a macro to get it to not include the older header:
 
 ```c
-#defien WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
 #include <winsock2.h>
@@ -207,19 +208,78 @@ int connect(int sockfd, struct sockaddr *serv_addr, int addrlen);
 
 `sockfd` is our socket file descriptor returned by the `socket()` call, `serv_addr` is a `struct sockaddr` containing the destination port and IP address, and `addrlen` is the length in bytes of the server address structure.
 
+## `listen()`: Somebody call me please?
 
+```c
+int listen(int sockfd, int backlog);
+```
+`sockfd` is the usual file descriptor from the `socket()` call. `backog` is the number of connections allowed on the incoming queu`sockfd` is the usual file descriptor from the `socket()` call. `backog` is the number of connections allowed on the incoming queue. Incoming connections are going to wait in this queue until we `accept()` them. This is the limit of how many connections can queue up. Most systems silently set this number to 20.
 
+`listen()` returns `-1` and sets `errno` on error.
 
+We need to call `bind()` before we call `listen()` so that the server is running on a specific port. So if we're listening to incoming connections, we do things in this sequence:
+```c
+getaddinfo();
+socket();
+bind();
+listen();
+/* accept here*/
+```
+## `accept()`: Thank you for calling me!!
 
+The accept call is kinda weird. Someone very far away will try to `connect()` to our computer on a port that we are `listen()`ing on. Their connection request will be queued up waiting to be `accept()`ed by us. We call `accept()` and we tell tell it to get the pending connection. It will retuen a brand new *socket file descriptor* to use for this single connection. At this point we have two *socket file descriptors*: one is still listening to for more connections, and the newly created one is ready to `send()` and `recv()`.
 
+```c
+#include <sys/types.h>
+#include <sys/socket.h>
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+```
 
+`socketfc()` is the `listen()`ing socker descp. `addr` will usually be a pointer to a local `struct sockaddr_storage`. This is where the information about the incoming connection will go (and with which you can determine which host is calling you from which port). `addrlen` is a local integer variable than shoulf be set to `sizeof(struct sockaddr_storage)` before its address is passed to `accept()`. `accept()` will not put more than that many bytes into `addr`. If it puts fewer, it will change the value of `adrlen` accordingly.
 
+Again, `accept()` returns -1 and sets `errno` if an error ocurs.
 
+```c
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
+#define MYPORT "3490" // the port users will be connecting to
+#define BACKLOG 10 // how many pending connections queue holds
 
+int main(void)
+{
+struct sockaddr_storage their_addr;
+socklen_t addr_size;
+struct addrinfo hints, *res;
+int sockfd, new_fd;
 
+// !! don't forget your error checking for these calls !!
 
+// first, load up address structs with getaddrinfo():
 
+memset(&hints, 0, sizeof hints);
+hints.ai_family = AF_UNSPEC; // use IPv4 or IPv6, whichever
+hints.ai_socktype = SOCK_STREAM;
+hints.ai_flags = AI_PASSIVE; // fill in my IP for me
+
+getaddrinfo(NULL, MYPORT, &hints, &res);
+
+// make a socket, bind it, and listen on it:
+
+sockfd = socket(res->ai_family, res->ai_socktype,res->ai_protocol);
+bind(sockfd, res->ai_addr, res->ai_addrlen);
+listen(sockfd, BACKLOG);
+
+// now accept an incoming connection:
+
+addr_size = sizeof their_addr;
+new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+
+// ready to communicate on socket descriptor new_fd!
+```
+We will use the `new_fd` for all `send()` and `recv()` calls. If we only needed one connections, we can `close()` the listening `sockfd` in order to prevent more incoming connections.
 
 
 
